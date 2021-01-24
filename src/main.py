@@ -1,55 +1,90 @@
-# Your team needs to automate the processing of FBX models.
-# Write a tool, which performs the following operations on each:
+# To run:
+# F:\Programs\Blender2.91\blender --background --python src/main.py
 
-# 1. Attach textures to any existing materials on mesh objects contained within. If an object doesn't have a material, it can be ignored. It's fine for a material not to have any textures.
-#  - Texture files may be .png or .jpg
-#  - The texture filename patterns and material properties to connect them to:
-#    - Filename 'T_{fbxfilename}_{materialname}_BC' should be used as a Diffuse or Albedo map
-#    - Filename 'T_{fbxfilename}_{materialname}_N' should be used as a Normal map
-#    - Filename 'T_{fbxfilename}_{materialname}_O' should be used as an Opacity map
-#  - Bonus points if the texture filename patterns can be configured
+# python -m pip install requests
+import zipfile, io, os
 
-# 2. Reset the transforms of any mesh objects to origin (identity transform) without moving their geometry. Meshes are never animated, and they are never parented or bound to other objects. Any other object types should be ignored.
+from src import blenderApi
+from src.utils import ioUtils, httpUtils, paths
+from src.validation import validation
 
-# 3. Reexport the FBX file and copy only the used textures to output. FBX settings are not important. Textures should be put in a subdirectory named 'textures', relative to the output FBX file.
+print("Hello Headless BLENDER")
 
-
-# Input:
-
-# List of download URLs in a text file. Each download is a single zip archive.
-# Contents of each zip file: a single .fbx file and multiple .png or .jpg files for textures. All contained files are in a flat directory structure.
-
-# Not all inputs are valid. The following edge cases need to be handled by reporting or logging them as errors:
-#  - Input archive has no FBX file
-#  - FBX file has no materials
-
-# Problems with a single input item should never stop the entire batch process. User intervention should not be required during processing of a batch.
+#################################################################################
 
 
-# Expected output:
+# get file location
+url_list_file_path = input(
+    "Please enter file absolute location (Exmp. D:\\myfiles\fbx_list.txt)."
+    "\nOr press ENTER to read form demo file in resources.\n"
+)
+if not bool(url_list_file_path.strip()):
+    url_list_file_path = os.path.join(paths.resources_dir_path, 'demo_urls.txt')
 
-# FBX files and their textures exported to a configurable location in the file system. 
-# Each zip file should result in one output directory (named according to zip file) at target location.
+#################################################################################
 
+# read urls from file
+fbx_model_url_list = ioUtils.getLinesListFromFile(url_list_file_path)
 
-# Other notes:
+#################################################################################
+# download fbx models
 
-# You can choose to implement the solution using any of the following: Blender, 3dsmax, Maya, or FBX SDK.
-# We prefer the solution to be written in Python or C++.
+# with a session, we get keep alive
+session = httpUtils.getSession()
+print("open session")
 
-# Use of any additional technologies is up to you, but have in mind that the primary purpose of this assignment is to evaluate your coding skills.
+for file_number, zip_file_url in enumerate(fbx_model_url_list, start=1):
+    print(f"iteration: {file_number}")
 
-# The interface is up to you, e.g. it can be a GUI or CLI, and it can be a standalone application or a scripted tool. Choose what you think is the appropriate solution.
+    # not working properly
+    # if not check_if_downloadable(zip_file_url):
+    #     print(f"Sorry, but content is not downloadable from url: {zip_file_url}")
+    #     continue
 
+    # ignored, filename = zip_file_url.rsplit('/', 1)
+    # print(f"filename: {filename}")
 
-# To run:  
-# .\blender --background --python 2.91\scripts\addons\my_custom_fbx_processor\main.py
+    response = session.get(zip_file_url)
+    print(f"...Downloading file {file_number} from ===> {zip_file_url}")
 
-#python -m pip install requests
-import requests, zipfile, io, os
+    if not response.ok:
+        print(f"Sorry, could not download file from url: {zip_file_url}")
+        session.close()
+        continue
 
-print("Hello BLENDER")
+    # read zip file binary:
+    print("reading zip from response")
+    response_content_binary = io.BytesIO(response.content)
 
-with open('P4Output.txt', 'w') as f:
-    f.write("test")
+    # Create a ZipFile Object and load sample.zip in it
+    with zipfile.ZipFile(response_content_binary) as zip_obj:
+        # TODO: checks refactor into try with decorators
+        if validation.checkIsZipValid(zip_obj): continue
 
+        fbx_file_names = ioUtils.tryGetFbxFilenamesFromZip(zip_obj)
+        if not bool(fbx_file_names): continue
+
+        fbx_file_names_without_extension = os.path.splitext(fbx_file_names[0])[0]
+        path_to_extract = os.path.join(paths.downloads_dir_path, fbx_file_names_without_extension)
+        # create folder for extraction:
+        try:
+            os.mkdir(path_to_extract)
+        except OSError:
+            print("Creation of the directory %s failed" % path_to_extract)
+        else:
+            print("Successfully created the directory %s " % path_to_extract)
+
+        # Extract zip to disk:
+        print(f"exporting to disk into: {path_to_extract}")
+        zip_obj.extractall(path_to_extract)
+
+        ####### Blender actions: ###############################################################
+
+        blender_obj = blenderApi.getActiveObjectInScene()
+
+        # Check if has any material: (If an object doesn't have a material, it can be ignored.)
+        validation.checkIfHasMaterial(blender_obj)
+
+# TODO:
+# for each request pass a chain
+#
