@@ -1,68 +1,76 @@
 import bpy
 
+from typing import List
+
 from src.blenderApi.BlenderFileManager import BlenderFileManager
+from src.blenderApi.MaterialShaderGraphManager import MaterialShaderGraphManager
 from src.models.DirectoryContext import DirectoryContext
+from src.models.FileMetadata import FileMetadata
+from src.models.textureFiles.TextureFileMetadata import TextureFileMetadata
 from src.models.textureFiles.TextureFilesManager import TextureFilesManager
+from src.utils.validation import errorMessages
 
 
-class SceneManger:
-    def __init__(
-            self,
-            texture_file_name_pattern_context: TextureFilesManager = None,
-            scene_file_path: str = None
-    ):
-        self.file_manager = BlenderFileManager(texture_file_name_pattern_context)
-        scene_file_path and self.importScene(scene_file_path)
-
+class SceneManager:
+    @staticmethod
     def importScene(
-            self,
             scene_file_path: str,
     ):
-        self.file_manager.importSceneFile(scene_file_path)
+        SceneManager.__removeAllObjectsInScene()
+        BlenderFileManager.importSceneFile(scene_file_path)
 
-    def loadAndApplyTexturesOnExistingMaterials(self, textures_dir_context: DirectoryContext):
-        new_textures_files = self.file_manager.importTextures(textures_dir_context)
-        bpy.data.images['your_image.png'].pack()
+    @staticmethod
+    def __removeAllObjectsInScene():
+        for obj in bpy.data.objects:
+            bpy.data.objects.remove(obj)
 
-        # TODO: creade
+    @staticmethod
+    def __deselectAllObjectsInScene():
+        for obj in bpy.context.selected_objects:
+            obj.select_set(False)
 
-        # Create a material
-        material = bpy.data.materials.new(name="Example_Material")
-        material.use_nodes = True
-        nodes = material.node_tree.nodes
-        links = material.node_tree.links
+    @staticmethod
+    def __applyCurrentTransformAsOriginToAllMeshObjects():
+        SceneManager.__deselectAllObjectsInScene()
 
-        # Reuse the material output node that is created by default
-        material_output = nodes.get("Material Output")
+        for obj in bpy.context.scene.objects:
+            if obj.type == 'MESH':
+                obj.select_set(True)
+                bpy.ops.object.transform_apply(location=True, scale=True, rotation=True)
+                obj.select_set(False)
 
-        # Create Image Texture node and load the displacement texture.
-        # You need to add the actual path to the texture.
-        displacement_tex = nodes.new("ShaderNodeTexImage")
-        displacement_tex.image = bpy.data.images.load("/path/to/your/texture")
-        displacement_tex.image.colorspace_settings.name = "Non-Color"
+    def __init__(
+            self,
+            scene_file: FileMetadata = None,
+            texture_file_name_pattern_context: TextureFilesManager = None
+    ):
+        self.file_manager = BlenderFileManager(texture_file_name_pattern_context)
+        scene_file and self.importScene(scene_file.file_path)
 
-        # Create the Displacement node
-        displacement = nodes.new("ShaderNodeDisplacement")
+    def processAndExportImportedFile(
+            self,
+            textures_dir_context: DirectoryContext,
+            path_to_export_scene_file: str,  # C:/workspace/exports/MyScene/my_scene.fbx
+            path_to_export_textures: str  # C:/workspace/exports/MyScene/textures
+    ):
+        self.__applySceneTexturesOnExistingMaterials(textures_dir_context, path_to_export_textures)
+        SceneManager.__applyCurrentTransformAsOriginToAllMeshObjects()
+        BlenderFileManager.exportSceneFile(path_to_export_scene_file)
 
-        # Create the Texture Coordinate node
-        tex_coordinate = nodes.new("ShaderNodeTexCoord")
+    def __applySceneTexturesOnExistingMaterials(
+            self,
+            textures_dir_context: DirectoryContext,
+            path_to_export_textures: str
+    ):
+        new_textures_files: List[TextureFileMetadata] = self.file_manager.importSceneTextures(textures_dir_context)
 
-        # Connect the Texture Coordinate node to the displacement texture.
-        # This uses the active UV map of the object.
-        links.new(displacement_tex.inputs["Vector"], tex_coordinate.outputs["UV"])
+        if not bool(bpy.data.materials):
+            print(errorMessages.no_material)
+            return
 
-        # Connect the displacement texture to the Displacement node
-        links.new(displacement.inputs["Height"], displacement_tex.outputs["Color"])
-
-        # Connect the Displacement node to the Material Output node
-        links.new(material_output.inputs["Displacement"], displacement.outputs["Displacement"])
-
-        # Get the active object
-        active_obj = bpy.context.view_layer.objects.active
-
-        # Check if the active object has a material slot, create one if it doesn't.
-        # Assign the material to the first slot for the active object.
-        if active_obj.material_slots:
-            active_obj.material_slots[0].material = material
-        else:
-            active_obj.material_slots.append(material)
+        for material in bpy.data.materials:
+            material_textures = BlenderFileManager.getMaterialTextureFiles(material, new_textures_files)
+            exported_material_textures = TextureFilesManager.exportTextureFiles(path_to_export_textures,
+                                                                                material_textures)
+            material_shader_manager = MaterialShaderGraphManager(material)
+            material_shader_manager.cleanlyApplyTextures(exported_material_textures)

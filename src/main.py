@@ -2,39 +2,38 @@
 # F:\Programs\Blender2.91\blender --background --python src/main.py
 
 # python -m pip install requests
-import bpy
-import sys, zipfile, os
+import sys, io, os, zipfile
 
-from typing import List, Tuple
+from typing import List
 
 
-# region Local & Third Party modules setup
-from src.constants.FileExtensions import FileExtensions
-
+# region Local & Third Party modules setup ########################################
 
 def registerModulesDirectories(module_path_list: List[str]):
     for module_path in module_path_list:
         if module_path not in sys.path:
             sys.path.append(module_path)
 
-
+import bpy
 blenderDir = os.path.dirname(bpy.data.filepath)
 srcDir = os.path.dirname(os.path.realpath(__file__))
 registerModulesDirectories([blenderDir, srcDir])
 
-from src.utils import ioUtils
+# endregion ######################################################################
+# region Internal Imports ########################################################
+
+from src.blenderApi.blenderApi import processFbxFilesWithBlender
 from src.constants import paths
-from src.utils.ioUtils import createDirectory, getZipNameInMemory
-from src.validation import errorMessages
-from src.models.DirectoryContext import DirectoryContext
-from src.models.FileMetadata import FileMetadata
+from src.utils.ioUtils import getLinesListFromFile, createDirectory, extractZipFile
+from src.utils.httpUtils import downloadContentFromUrlList
+from src.utils.validation import errorMessages
 
-print("Hello Headless BLENDER")
+# endregion ######################################################################
+# region Info gathering from user ################################################
+# TODO: ask user: download or read from resources/import
+# TODO: downloads -> ask .txt file with urls
+# TODO: asks texture file identifiers pattern
 
-#################################################################################
-
-
-# get file location
 url_list_file_path = input(
     "Please enter file absolute location (Exmp. D:\\myfiles\\fbx_list.txt)."
     "\nOr press ENTER to read form demo file in resources.\n"
@@ -42,81 +41,35 @@ url_list_file_path = input(
 if not bool(url_list_file_path.strip()):
     url_list_file_path = os.path.join(paths.resources_dir_path, 'demo_urls.txt')
 
-#################################################################################
+# endregion ######################################################################
+# region Info gathering from user ################################################
 
-# read urls from file
-fbx_model_url_list = ioUtils.getLinesListFromFile(url_list_file_path)
+fbx_model_url_list = getLinesListFromFile(url_list_file_path)
 
-#################################################################################
-# download fbx models
 
-# with a session, we get keep alive
-# session = httpUtils.getSession()
-# print("open session")
-#
-# for file_number, zip_file_url in enumerate(fbx_model_url_list, start=1):
-#     print(f"iteration: {file_number}")
-#
-#     response = session.get(zip_file_url)
-#     print(f"...Downloading file {file_number} from ===> {zip_file_url}")
-#
-#     if not response.ok:
-#         print(f"Sorry, could not download file from url: {zip_file_url}")
-#         session.close()
-#         continue
-#
-#     # read zip file binary:
-#     print("reading zip from response")
-#     response_content_binary = io.BytesIO(response.content)
+# endregion ######################################################################
+# Execute actions ################################################################
 
-zip_obj = zipfile.ZipFile(paths.resources_dir_path + '\\woodenBall.zip', 'r')
+# zip_obj = zipfile.ZipFile(paths.resources_dir_path + '\\woodenBall.zip', 'r')
+def processAndExportFbxFiles(binary_files: List[io.BytesIO]):
+    for binary_file in binary_files:
+        with zipfile.ZipFile(binary_file) as zip_obj:
+            extraction_data = extractZipFile(zip_obj)
+            if not extraction_data: continue
+            zip_dir_context, fbx_files, path_to_extract = extraction_data
 
-# Create a ZipFile Object and load sample.zip in it
-# with zipfile.ZipFile(response_content_binary) as zip_obj:
-# region
-# TODO: refactor with FileManager and FileMetadata
-# TODO: OPTIONAL: checks refactor into try with decorators
+            if fbx_files:
+                createDirectory(path_to_extract)
+                print(f"exporting to disk into: {path_to_extract}")
+                zip_obj.extractall(path_to_extract)
+            else:
+                print(errorMessages.archive_missing_fbx_file)
+                continue
 
-# Validation if zip valid
-# if not validationChecks.checkIsZipValid(zip_obj): continue
+            processFbxFilesWithBlender(fbx_files, zip_dir_context)
 
-dir_name_to_extract = getZipNameInMemory(zip_obj)
-# if not bool(dir_name_to_extract): continue
-path_to_extract = os.path.join(paths.downloads_dir_path, dir_name_to_extract)
 
-# Get files metadata form zip in memory:
-zip_dir_context = DirectoryContext(path_to_extract, zip_obj)
+downloadedContent = downloadContentFromUrlList(fbx_model_url_list)
+processAndExportFbxFiles(downloadedContent)
 
-# region ####### Blender actions: ########
-# TODO: 1) iterate through all .fbx files
-fbx_files: Tuple[FileMetadata] = zip_dir_context.getFilesByExtension(FileExtensions.FBX)
-
-if fbx_files:
-    createDirectory(path_to_extract)
-    print(f"exporting to disk into: {path_to_extract}")
-    zip_obj.extractall(path_to_extract)
-else:
-    print(errorMessages.archive_missing_fbx_file)
-    # continue
-
-# TODO: 2) create scene with SceneManager
-
-for fbx in fbx_files:
-    print(fbx)
-
-# TODO: 3) Apply textures on each Material
-
-# TODO: 4) Reset mesh to origin (identity transform)
-
-# TODO: 5) Reexport .fbx and textures respectively
-
-# endregion
-
-# blender_obj = blenderApi.getActiveObjectInScene()
-
-# Check if has any material: (If an object doesn't have a material, it can be ignored.)
-# validation.checkIfHasMaterial(blender_obj)
-
-# TODO:
-# for each request pass a chain
-#
+# endregion ######################################################################

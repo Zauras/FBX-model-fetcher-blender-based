@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 
 class FileMetadata:
@@ -41,7 +41,9 @@ class FileMetadata:
     # endregion properties
 
     # region constructors
-    def __init__(self, dir_path: str, file_entry: Path):
+    def __init__(self, dir_path: str, file_entry: Union[Path, str]):
+        if type(file_entry) is str: file_entry = Path(file_entry)
+
         self.__dir_path = dir_path
         self.__file_base = FileMetadata.__getFileBase(file_entry)
         self.__file_name = FileMetadata.__getFileName(file_entry)

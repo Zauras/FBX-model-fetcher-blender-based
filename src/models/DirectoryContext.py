@@ -1,10 +1,11 @@
 import os
 import zipfile
-from enum import Enum
+
 from typing import List, Union, Callable, Tuple, Iterable
 
 from ..constants import paths
 from .FileMetadata import FileMetadata
+from ..constants.FileExtensions import FileExtensions
 
 
 class DirectoryContext:
@@ -21,17 +22,22 @@ class DirectoryContext:
 
     # region API:
 
-    def getFilesByExtension(self, extension: Union[str, Iterable[str], Iterable[Enum]]) -> Tuple[FileMetadata]:
-        if isinstance(extension, str):
-            return self.getFilesByAssertFunc(lambda file_metadata: file_metadata.extension == extension)
+    def getFilesByExtension(
+            self,
+            extension: Union[FileExtensions, Iterable[FileExtensions]]
+    ) -> Tuple[FileMetadata]:
+        if isinstance(extension, Iterable):
+            return self.getFilesByAssertFunc(
+                lambda file_metadata: file_metadata.extension in [ext_entry.value for ext_entry in extension]
+            )
         else:
-            return self.getFilesByAssertFunc(lambda file_metadata: file_metadata.extension in extension)
-
-    def hasFileWithExtension(self, extension: str):
-        return any(file for file in self.files_metadata_tuple if file.extension == extension)
+            return self.getFilesByAssertFunc(lambda file_metadata: file_metadata.extension == extension.value)
 
     def getFilesByAssertFunc(self, assert_func: Callable[[FileMetadata], bool]) -> Tuple[FileMetadata]:
         return tuple([file for file in self.files_metadata_tuple if assert_func(file)])
+
+    def hasFileWithExtension(self, extension: str):
+        return any(file for file in self.files_metadata_tuple if file.extension == extension)
 
     # endregion
 
