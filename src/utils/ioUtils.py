@@ -1,8 +1,8 @@
-import os, zipfile
+import os, zipfile, io
 import pathlib
 
 from shutil import copy
-from typing import Tuple
+from typing import Tuple, List
 
 from src.constants import paths
 from src.constants.FileExtensions import FileExtensions
@@ -61,3 +61,19 @@ def createDirectory(dir_path: str) -> bool:
 def exportFile(source_file: FileMetadata, destination_path: str) -> FileMetadata:
     copy(source_file.file_path, destination_path)
     return FileMetadata(destination_path, source_file.file_base)
+
+
+def extractZipsInDirectoryToMemory(directory_path):
+    dir_files = [f for f in os.listdir(directory_path) if os.path.isfile(os.path.join(directory_path, f))]
+
+    binary_files: List[io.BytesIO] = []
+    for file in dir_files:
+        file_path = os.path.join(directory_path, file)
+        print(zipfile.is_zipfile(file_path))
+
+        if zipfile.is_zipfile(file_path):
+            with open(file_path, 'rb') as binary_stream:
+                binary_file = io.BytesIO(binary_stream.read())
+                binary_files.append(binary_file)
+
+    return binary_files
