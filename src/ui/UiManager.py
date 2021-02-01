@@ -4,6 +4,7 @@ from typing import Tuple, List
 
 from src.constants import paths
 from src.constants.ImportActionType import ImportActionType
+from src.constants.TextureMapType import TextureMapType
 from src.textureFiles.constants import default_separator_value, default_texture_filename_pattern, \
     texture_file_type_identifier, file_name_identifier, material_identifier, texture_map_identifier
 from src.utils.httpUtils import downloadContentFromUrlList
@@ -46,6 +47,13 @@ class UiManager:
             "\nPlease inspect processed files in: "
             f"\n    {paths.exports_dir_path}"
         )
+
+    @staticmethod
+    def hintTextureMapTypeIdentifiers():
+        print("Valid Texture Map identifiers are:")
+        print("Identifier - Texture Map")
+        for texture_map in TextureMapType:
+            print(f"{texture_map.value} - {texture_map.name}")
 
     @staticmethod
     def __askImportActionType() -> str:

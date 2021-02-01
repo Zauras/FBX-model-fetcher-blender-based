@@ -3,6 +3,7 @@ from typing import List, Union, Tuple
 from src.constants.TextureMapType import TextureMapType
 from src.models.DirectoryContext import DirectoryContext
 from src.models.FileMetadata import FileMetadata
+from src.ui.UiManager import UiManager
 from src.utils.ioUtils import exportFile
 from src.textureFiles.TextureFileMetadata import TextureFileMetadata
 from src.textureFiles.constants import default_texture_filename_pattern, default_separator_value, \
@@ -81,12 +82,7 @@ class TextureFilesManager:
         if file_name_parts[self.texture_map_identifier_index] \
                 not in [texture_map_type.value for texture_map_type in TextureMapType]:
             print("File name does not contain correct or has misplaced Texture Map identifier")
-
-            # TODO: separate as help hint utils function:
-            print("Valid Texture Map identifiers are:")
-            print("Identifier - Texture Map")
-            for texture_map in TextureMapType:
-                print(f"{texture_map.value} - {texture_map.name}")
+            UiManager.hintTextureMapTypeIdentifiers()
             return False
 
         return True
