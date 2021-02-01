@@ -17,7 +17,7 @@ Funcionality:
   * Exports .fbx and textures to ~./exports
 
 Prerequisites:
-  >=Blender 2.8
+  <span>>=Blender 2.8</span>
   
 Tested on Windows 10 with Blender 2.9
 
