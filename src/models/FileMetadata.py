@@ -53,5 +53,5 @@ class FileMetadata:
 
 def getFilesFromDirByExtension(dir_path: str, extensions: List[str]):
     dir_files = Path(dir_path).iterdir()
-    x = [file_entry for file_entry in dir_files if file_entry.suffix in extensions]
-    return [FileMetadata("d", file_entry) for file_entry in x]
+    valid_files = [file_entry for file_entry in dir_files if file_entry.suffix in extensions]
+    return [FileMetadata("d", file_entry) for file_entry in valid_files]
