@@ -7,9 +7,9 @@ Execute script with headless Blender:
 
 Funcionality:
   * import FBX files to process:
-    > import .zip files to ~./resources/imports
+    * import .zip files to ~./resources/imports
     OR
-    >  give path to .txt file which contains urls to download .zip's
+    *  give path to .txt file which contains urls to download .zip's
     
   * Texture file pattern can be customized through CLI guide in process
   * Applies Base Color, Normal and Opacity textures to materials depending on texture file pattern
@@ -17,7 +17,7 @@ Funcionality:
   * Exports .fbx and textures to ~./exports
 
 Prerequisites:
-  *  >=Blender 2.8
+  >=Blender 2.8
   
 Tested on Windows 10 with Blender 2.9
 
