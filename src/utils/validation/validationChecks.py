@@ -3,6 +3,10 @@ import zipfile
 from src.utils.validation import errorMessages
 
 
+def isZipFile(path):
+    return zipfile.ZipFile.testzip(path)
+
+
 def checkIsZipValid(zip_obj):
     if zipfile.ZipFile.testzip(zip_obj):
         return True

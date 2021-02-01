@@ -11,7 +11,7 @@ from src.utils.ioUtils import exportFile
 
 VALID_TEXTURE_FILE_FORMATS = (FileExtensions.JPG, FileExtensions.PNG)
 
-file_type_identifier = 'T'
+texture_file_type_identifier = 'T'
 file_name_identifier = 'FILE'
 material_identifier = 'MAT'
 texture_map_identifier = "MAP"
@@ -22,7 +22,7 @@ texture_map_identifier = "MAP"
 default_separator_value = '_'
 
 TEXTURE_IDENTIFIERS = [
-    file_type_identifier,
+    texture_file_type_identifier,
     file_name_identifier,
     material_identifier,
     texture_map_identifier
@@ -66,7 +66,7 @@ class TextureFilesManager:
         self.separator_value = separator_value
         self.pattern_identifiers = self.__extractPatternIdentifiersFromPatternString()
 
-        self.file_type_identifier_index = self.pattern_identifiers.index(file_type_identifier)
+        self.file_type_identifier_index = self.pattern_identifiers.index(texture_file_type_identifier)
         self.file_name_identifier_index = self.pattern_identifiers.index(file_name_identifier)
         self.material_identifier_index = self.pattern_identifiers.index(material_identifier)
         self.texture_map_identifier_index = self.pattern_identifiers.index(texture_map_identifier)
@@ -83,8 +83,6 @@ class TextureFilesManager:
 
     def __getTextureMetadata(self, file_metadata: FileMetadata) -> Union[TextureFileMetadata, None]:
         file_name_parts = file_metadata.file_name.split(self.separator_value)
-
-        # TODO: separate validation checkers:
         is_valid_texture_file_name = self.__validateTextureFileName(file_name_parts)
 
         return TextureFileMetadata(
@@ -99,7 +97,7 @@ class TextureFilesManager:
             print("Incorrect texture file name format")
             return False
 
-        if file_name_parts[self.file_type_identifier_index] != file_type_identifier:
+        if file_name_parts[self.file_type_identifier_index] != texture_file_type_identifier:
             print("Missing or incorrect place of Texture identifier in file name")
             return False
 
