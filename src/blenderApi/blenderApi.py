@@ -1,8 +1,8 @@
 import os
 
-from src.blenderApi.SceneManager import SceneManager
+from src.blenderApi.managers.SceneManager import SceneManager
 from src.constants import paths
-from src.models.textureFiles.TextureFilesManager import TextureFilesManager
+from src.textureFiles.TextureFilesManager import TextureFilesManager
 from src.utils.ioUtils import createDirectory
 
 

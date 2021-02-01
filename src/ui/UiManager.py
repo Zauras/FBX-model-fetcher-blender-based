@@ -4,7 +4,7 @@ from typing import Tuple, List
 
 from src.constants import paths
 from src.constants.ImportActionType import ImportActionType
-from src.models.textureFiles.TextureFilesManager import default_separator_value, default_texture_filename_pattern, \
+from src.textureFiles.constants import default_separator_value, default_texture_filename_pattern, \
     texture_file_type_identifier, file_name_identifier, material_identifier, texture_map_identifier
 from src.utils.httpUtils import downloadContentFromUrlList
 from src.utils.ioUtils import extractZipsInDirectoryToMemory, getLinesListFromFile
@@ -13,23 +13,19 @@ from src.utils.ioUtils import extractZipsInDirectoryToMemory, getLinesListFromFi
 class UiManager:
     @staticmethod
     def getZipFilesAsBinary() -> List[io.BytesIO]:
-        binary_files_to_process: List[io.BytesIO] = []
-
         import_action_type = UiManager.__askImportActionType()
 
         if import_action_type.upper() == ImportActionType.Download.value:
             url_list_file_path = UiManager.__askUrlListSource()
 
-            if not bool(url_list_file_path.strip()):
-                url_list_file_path = os.path.join(paths.resources_dir_path, 'demo_urls.txt')
-
             fbx_model_url_list = getLinesListFromFile(url_list_file_path)
-            binary_files_to_process = downloadContentFromUrlList(fbx_model_url_list)
+            return downloadContentFromUrlList(fbx_model_url_list)
 
         elif import_action_type.upper() == ImportActionType.Import.value:
-            binary_files_to_process = extractZipsInDirectoryToMemory(paths.imports_dir_path)
+            return extractZipsInDirectoryToMemory(paths.imports_dir_path)
 
-        return binary_files_to_process
+        else:
+            return UiManager.getZipFilesAsBinary()
 
     @staticmethod
     def getTextureFilePattern() -> Tuple[str, str]:
@@ -46,7 +42,7 @@ class UiManager:
     @staticmethod
     def shoutExportFinished():
         print(
-            "\nExporting finished."
+            "\n\n################# Exporting finished ###############################"
             "\nPlease inspect processed files in: "
             f"\n    {paths.exports_dir_path}"
         )
@@ -66,18 +62,21 @@ class UiManager:
     @staticmethod
     def __askUrlListSource() -> str:
         url_list_file_path = input(
-            "\n################# Choose url list source ###############################"
+            "\n################# Choose url list source #############################"
             "\nPlease enter file absolute location (Exmp. D:\\myfiles\\fbx_list.txt)."
             "\nOr press ENTER to read form demo file in resources.\n"
             "\nUrls source: "
             "\n"
         )
+        if not bool(url_list_file_path.strip()):
+            return UiManager.__askUrlListSource()
+
         return url_list_file_path
 
     @staticmethod
     def __askTextureFileNamePatten() -> Tuple[str, str]:
         texture_filename_pattern = input(
-            "\n################# Choose texture file name pattern ########################"
+            "\n################# Choose texture file name pattern ###################"
             "\nPlease enter texture file name pattern"
             f"\nOr press ENTER to use default pattern: {default_texture_filename_pattern}\n"
             "\nValid pattern identifiers: "
@@ -89,5 +88,6 @@ class UiManager:
         )
         separator_value = input(
             f"\nConfirm custom separator or press ENTER and use default: \'{default_separator_value}\'"
+            "\n"
         )
         return texture_filename_pattern, separator_value

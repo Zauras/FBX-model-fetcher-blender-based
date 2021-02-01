@@ -50,22 +50,8 @@ class FileMetadata:
         self.__extension = FileMetadata.__getFileExtension(file_entry)
         self.__file_path = os.path.join(dir_path, self.file_base)
 
-    # def __init__(self, dir_path: str, file_base: str):
-    #     self.__dir_path = dir_path
-    #     self.__file_base = file_base
-    #
-    #     file_entry = Path(file_base)
-    #     self.__file_path = os.path.join(dir_path, file_base)
-    #     self.__file_name = FileMetadata.__getFileName(file_entry)
-    #     self.__extension = FileMetadata.__getFileExtension(file_entry)
-    # endregion constructors
-
 
 def getFilesFromDirByExtension(dir_path: str, extensions: List[str]):
     dir_files = Path(dir_path).iterdir()
     x = [file_entry for file_entry in dir_files if file_entry.suffix in extensions]
     return [FileMetadata("d", file_entry) for file_entry in x]
-
-# @overload.getFilesFromDirByExtension
-# def getFilesFromDirByExtension(dir_path: str, extension: str):
-#     getFilesFromDirByExtension(dir_path, [extension])

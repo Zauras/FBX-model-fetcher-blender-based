@@ -25,19 +25,18 @@ registerModulesDirectories([blenderDir, srcDir])
 # region Internal Imports ########################################################
 
 from src.blenderApi.blenderApi import processFbxFilesWithBlender
-from src.constants import paths
 from src.utils.ioUtils import createDirectory, extractZipFile
 from src.utils.validation import errorMessages
-from src.models.textureFiles.TextureFilesManager import TextureFilesManager
+from src.textureFiles.TextureFilesManager import TextureFilesManager
 from src.ui.UiManager import UiManager
 
 # endregion ######################################################################
 # region Info gathering from user ################################################
 
-binary_files_to_process: UiManager.getZipFilesAsBinary()
+binary_files_to_process: List[io.BytesIO] = UiManager.getZipFilesAsBinary()
 texture_filename_pattern, separator_value = UiManager.getTextureFilePattern()
 
-# Execute actions ################################################################
+# Execute files process ################################################################
 
 texture_files_manager = TextureFilesManager(
     filename_pattern=texture_filename_pattern,
@@ -48,7 +47,6 @@ texture_files_manager = TextureFilesManager(
 def processAndExportFbxFiles(binary_files: List[io.BytesIO]):
     if not bool(binary_files_to_process):
         print("\nThere is no files to process")
-        return
 
     for binary_file in binary_files:
         with zipfile.ZipFile(binary_file) as zip_obj:
@@ -66,9 +64,10 @@ def processAndExportFbxFiles(binary_files: List[io.BytesIO]):
 
             processFbxFilesWithBlender(fbx_files, zip_dir_context, texture_files_manager)
 
+    UiManager.shoutExportFinished()
+
 
 print("\n################# Processing imported FBX files ######################")
 processAndExportFbxFiles(binary_files_to_process)
-UiManager.shoutExportFinished()
 
 # endregion ######################################################################

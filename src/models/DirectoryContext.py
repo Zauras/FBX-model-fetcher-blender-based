@@ -9,12 +9,6 @@ from ..constants.FileExtensions import FileExtensions
 
 
 class DirectoryContext:
-    # @staticmethod
-    # def getFilesMetadataFromZip(dir_name_to_extract: str, zip_obj: zipfile.ZipFile) -> FolderMetadata:
-    #     path_to_extract = os.path.join(paths.downloads_dir_path, dir_name_to_extract)
-    #     files_in_zip = zip_obj.namelist()  # ["filename.txt"]
-    #     return FolderMetadata(path_to_extract, files_in_zip)
-
     def __init__(self, dir_name_to_extract: str, zip_obj: zipfile.ZipFile):
         path_to_extract = os.path.join(paths.downloads_dir_path, dir_name_to_extract)
         files_in_zip = zip_obj.namelist()  # ["filename.txt"]
